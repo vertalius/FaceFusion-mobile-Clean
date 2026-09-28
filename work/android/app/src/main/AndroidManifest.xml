@@ -24,6 +24,8 @@
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
 
 <application
+   		android:label="FaceFusion Mobile"
+   		android:extractNativeLibs="true"
         android:label="${appLabel}"
         android:localeConfig="@xml/locales_config"
         android:icon="@mipmap/ic_launcher"
