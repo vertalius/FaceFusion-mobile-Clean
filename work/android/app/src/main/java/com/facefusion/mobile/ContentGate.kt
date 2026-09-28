@@ -1,25 +1,34 @@
-package com.facefusion.mobile
+name: Build APK
+on:
+  workflow_dispatch:
 
-import android.content.Context
-import android.net.Uri
-import androidx.compose.runtime.mutableStateOf
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-object ContentGate {
-    val isReady = mutableStateOf(true)
+      - name: set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
 
-    enum class Verdict {
-        ALLOW, BLOCK, ERROR
-    }
+      - name: Install Android NDK & CMake (для сборки C++ кода)
+        run: |
+          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;25.1.8937393" "cmake;3.22.1"
 
-    fun prepare(context: Context) {
-        isReady.value = true
-    }
+      - name: Grant execute permission for gradlew
+        run: chmod +x work/android/gradlew
 
-    fun inspectStill(context: Context, source: Uri): Verdict {
-        return Verdict.ALLOW
-    }
+      - name: Build with Gradle
+        run: |
+          cd work/android
+          ./gradlew assembleDebug
 
-    fun inspectClip(context: Context, source: Uri, onProgress: (Float) -> Unit): Verdict {
-        return Verdict.ALLOW
-    }
-}
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: facefusion-uncensored
+          path: work/android/app/build/outputs/apk/debug/app-debug.apk
