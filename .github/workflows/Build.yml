@@ -1,6 +1,10 @@
-name: Build APK
+name: Build FaceFusion Mobile APK
 
 on:
+  push:
+    branches:
+      - main
+      - master
   workflow_dispatch:
 
 jobs:
@@ -8,51 +12,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: "17"
-          cache: gradle
+          java-version: '17'
+          distribution: 'temurin'
 
-      - name: Install Android SDK components
-        run: |
-          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install \
-            "platform-tools" \
-            "platforms;android-35" \
-            "build-tools;34.0.0" \
-            "ndk;27.2.12479018" \
-            "cmake;3.22.1"
+      - name: Setup Android SDK & NDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: '11076708'
 
-      - name: Grant execute permission for gradlew
+      - name: Accept Android Licenses
+        run: yes | sdkmanager --licenses || true
+
+      - name: Grant Execute Permission for Gradle
         run: chmod +x work/android/gradlew
 
-      - name: Prepare prebuilt native libs for Kotlin/UI-only build
-        run: |
-          set -e
-          mkdir -p "$GITHUB_WORKSPACE/prebuilt-native/arm64-v8a"
-
-          cd "$GITHUB_WORKSPACE/prebuilt-native/arm64-v8a"
-
-          # Используем релизный APK, который содержит запакованные нативные библиотеки
-          curl -L -o facefusion-mobile.apk \
-            "https://github.com/xfarook/FaceFusion/releases/download/v0.9.0/facefusion-mobile-0.9.0-release.apk"
-
-          unzip -j facefusion-mobile.apk "lib/arm64-v8a/*" -d .
-
-          ls -la
-
-      - name: Build APK
+      - name: Build Release APK
         run: |
           cd work/android
-          ./gradlew :app:assembleDebug \
-            -PprebuiltNativeDir="$GITHUB_WORKSPACE/prebuilt-native"
+          ./gradlew assembleRelease --stacktrace
 
-      - name: Upload APK artifact
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: facefusion-uncensored
-          path: work/android/app/build/outputs/apk/debug/app-debug.apk
+          name: FaceFusion-mobile-no-censorship
+          path: work/android/app/build/outputs/apk/release/*.apk
